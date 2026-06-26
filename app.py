@@ -1,3 +1,10 @@
+import streamlit as st          # ← imports FIRST
+import pandas as pd
+import re
+from rapidfuzz import fuzz
+from pypinyin import pinyin, Style
+
+# --- PASSWORD GATE ---
 def check_password():
     def password_entered():
         if st.session_state["password"] == st.secrets["password"]:
@@ -15,6 +22,8 @@ def check_password():
 
 if not check_password():
     st.stop()
+
+# --- rest of your app continues below ---
     
 import streamlit as st
 import pandas as pd
