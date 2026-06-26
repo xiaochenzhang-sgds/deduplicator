@@ -1,3 +1,21 @@
+def check_password():
+    def password_entered():
+        if st.session_state["password"] == st.secrets["password"]:
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]
+        else:
+            st.session_state["password_correct"] = False
+
+    if st.session_state.get("password_correct"):
+        return True
+    st.text_input("Enter password", type="password", on_change=password_entered, key="password")
+    if "password_correct" in st.session_state:
+        st.error("Incorrect password")
+    return False
+
+if not check_password():
+    st.stop()
+    
 import streamlit as st
 import pandas as pd
 import re
