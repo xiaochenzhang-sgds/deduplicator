@@ -422,14 +422,13 @@ with main_tab1:
                 col.metric(label, val)
 
             st.subheader("Priority Breakdown")
-            priority_order = ["P1","P2","P3","P4","WB","WBF","SL","N/A"]
-            chart_data = (
-                final_df["PRIORITY"].value_counts()
-                .reindex(priority_order, fill_value=0)
-                .rename("Count").reset_index()
-                .rename(columns={"index": "Priority"})
-            )
-            st.bar_chart(chart_data.set_index("Priority"))
+            priority_order  = ["P1","P2","P3","P4","WB","WBF","SL","N/A"]
+            priority_counts = final_df["PRIORITY"].value_counts()
+            chart_data = pd.DataFrame({
+                "Priority": priority_order,
+                "Count":    [priority_counts.get(p, 0) for p in priority_order]
+            }).set_index("Priority")
+            st.bar_chart(chart_data)
 
             def style_lead(row):
                 return [{ "P1":"background-color:#d4edda","P2":"background-color:#fff3cd",
