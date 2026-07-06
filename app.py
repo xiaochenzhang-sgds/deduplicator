@@ -211,7 +211,7 @@ with st.sidebar:
         """)
 
     with st.expander("🚫 Blacklist Keywords", expanded=False):
-        st.caption("One per line — leads containing these are marked Invalid.")
+        st.caption("One per line — leads containing these are marked Invalid (only if no SF match is found).")
         default_kw = "\n".join([
             "bar", "pub", "club", "hotel", "boutique", "capsule",
             "food court", "food centre", "foodcenter", "eating house",
@@ -232,7 +232,7 @@ with st.sidebar:
 | **WB** Win-back | Match vs Lost / Terminated / Closed | 🔄 Win-back team |
 | **WBF** Win-back Failed | Match vs Win Back Failed | ❌ Skip |
 | **SL** Same Location | Same unit, different name | 🔍 New biz, known address |
-| **N/A** Invalid | Bad address or blacklisted | 🗑 Skip |
+| **N/A** Invalid | Bad address, or blacklisted with no SF match | 🗑 Skip |
         """)
 
     with st.expander("❓ FAQs", expanded=False):
@@ -249,6 +249,13 @@ business that took over the space.
 The tool reads `#XX-YY` patterns from the address field
 automatically — no separate column needed. Handles
 #03-12, 03-12, 3-12, #3-12 and similar formats.
+
+**Why doesn't "Sushi Bar" get marked invalid anymore?**
+The blacklist keyword check now only runs as a last resort,
+after SF matching. If a lead matches an existing SF account
+(duplicate, potential, win-back, or same-location), that
+match always wins over the keyword filter. Only leads with
+no SF match at all and a blacklisted word get marked Invalid.
 
 **What is the SF Account Audit?**
 A separate tool that finds suspected duplicates within
@@ -337,10 +344,8 @@ with main_tab1:
                 if is_postal_missing and l_addr.lower() == "singapore":
                     final_status, priority_level = "Invalid - No address", "N/A"
 
-                elif any(word in l_name.lower() for word in invalid_keywords):
-                    final_status, priority_level = "Invalid - Not restaurant", "N/A"
-
                 else:
+                    # --- Run matching FIRST, before the blacklist check ---
                     l_name_norm = deep_normalize(l_name)
                     candidates  = sf_by_postal.get(l_postal)
 
@@ -369,7 +374,8 @@ with main_tab1:
                                 "status_group": best_row['status_group'],
                             }
 
-                    sg = match_data.get("status_group", "")
+                    sg             = match_data.get("status_group", "")
+                    is_blacklisted = any(word in l_name.lower() for word in invalid_keywords)
 
                     if   best_score == 100 and sg == "active_pipeline":
                         final_status, priority_level = "DUPLICATE",        "P4"
@@ -388,6 +394,10 @@ with main_tab1:
                             "name":   sl_hit[sf_name_col],
                             "status": sl_hit[sf_status_col],
                         }
+                    elif is_blacklisted:
+                        # Only fall back to "Invalid - Not restaurant" once we know
+                        # there is no genuine SF match of any kind.
+                        final_status, priority_level = "Invalid - Not restaurant", "N/A"
                     else:
                         final_status, priority_level = "NEW", "P1"
 
